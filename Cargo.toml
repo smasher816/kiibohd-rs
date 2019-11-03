@@ -1,0 +1,11 @@
+[package]
+name = "kiibohd-rs"
+version = "0.1.0"
+authors = ["Smasher816 <Smasher816@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+kiibohd-sys = { path = "../kiibohd-sys" }
+lazy_static = "1.4.0"
+env_logger = "0.7.1"
+log = "0.4.8"

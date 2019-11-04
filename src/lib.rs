@@ -108,6 +108,23 @@ pub mod output {
         }
         None
     }
+
+    pub fn capability_callback(_args: &[u8]) -> Option<i32> {
+        unsafe {
+            println!("{:?}", resultCapabilityCallbackData);
+        }
+        None
+    }
+}
+
+pub mod input {
+    use kiibohd_sys::*;
+
+    pub fn press(key: u8, state: u8) {
+        unsafe {
+            Scan_addScanCode(key, state);
+        }
+    }
 }
 
 pub mod data {
@@ -129,7 +146,10 @@ mod tests {
         control::add_cmd("serial_read", output::serial_read);
         control::add_cmd("serial_available", output::serial_available);
         control::add_cmd("layerState", output::serial_available);
+        control::add_cmd("capabilityCallback", output::capability_callback);
         control::init();
-        control::process(3);
+        control::process(1);
+        input::press(0x01, 0);
+        control::process(1);
     }
 }

@@ -131,6 +131,35 @@ pub mod input {
             Scan_removeScanCode(key, state);
         }
     }
+
+    pub fn set_macro_debug(debug_mode: usize) {
+        unsafe {
+            macroDebugMode = debug_mode as u8;
+        }
+    }
+
+    pub fn set_cap_debug(debug_enabled: bool) {
+        unsafe {
+            capDebugMode = debug_enabled as u8;
+        }
+    }
+    pub fn set_vote_debug(debug_enabled: bool) {
+        unsafe {
+            voteDebugMode = debug_enabled as u8;
+        }
+    }
+
+    pub fn set_layer_debug(debug_enabled: bool) {
+        unsafe {
+            layerDebugMode = debug_enabled as u8;
+        }
+    }
+
+    pub fn set_trigger_debug(debug_enabled: bool) {
+        unsafe {
+            triggerPendingDebugMode = debug_enabled as u8;
+        }
+    }
 }
 
 pub mod data {
@@ -176,6 +205,14 @@ mod tests {
         control::add_cmd("layerState", output::serial_available);
         control::add_cmd("capabilityCallback", output::capability_callback);
         control::init();
+
+        input::set_macro_debug(2);
+        input::set_vote_debug(true);
+        input::set_layer_debug(true);
+        input::set_trigger_debug(true);
+        input::set_trigger_debug(true);
+        output::set_output_debug(2);
+
         control::process(1);
         input::press(0x01, 0);
         control::process(1);

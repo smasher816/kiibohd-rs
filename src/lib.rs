@@ -125,13 +125,41 @@ pub mod input {
             Scan_addScanCode(key, state);
         }
     }
+
+    pub fn release(key: u8, state: u8) {
+        unsafe {
+            Scan_removeScanCode(key, state);
+        }
+    }
 }
 
 pub mod data {
-    pub fn usb_keyboard() {}
-    pub fn trigger_list_buffer() {}
-    pub fn pending_trigger_list() {}
-    pub fn pending_result_list() {}
+    use kiibohd_sys::*;
+
+    pub fn usb_keyboard() -> USBKeys {
+        unsafe {
+            USBKeys_primary
+        }
+    }
+
+    pub fn trigger_list_buffer() -> Vec<TriggerEvent> {
+        unsafe {
+            macroTriggerEventBuffer.to_vec()
+        }
+    }
+
+    pub fn pending_trigger_list() -> Vec<u16> {
+        unsafe {
+            // bindgen treats this as a 0 length array, so we have to cast this ourselves
+            std::slice::from_raw_parts(&macroTriggerMacroPendingList as *const u16, macroTriggerMacroPendingListSize as usize).to_vec()
+        }
+    }
+
+    pub fn pending_result_list() -> ResultsPending {
+        unsafe {
+            macroResultMacroPendingList
+        }
+    }
 }
 
 #[cfg(test)]
@@ -151,5 +179,6 @@ mod tests {
         control::process(1);
         input::press(0x01, 0);
         control::process(1);
+        println!("TPending {:?}", data::pending_trigger_list());
     }
 }

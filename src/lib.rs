@@ -217,6 +217,65 @@ pub mod input {
         get_layer_state();
         None
     }
+
+    pub fn animation_display_buffers() -> Vec<Vec<u32>> {
+        unsafe {
+            let num_buffers = Pixel_Buffers_HostLen;
+            let pixelbufs = std::slice::from_raw_parts(&Pixel_Buffers as *const PixelBuf, num_buffers as usize);
+
+            let mut outputbufs = vec![];
+            for buf in pixelbufs.iter() {
+                let data: Vec<u32> = match buf.width {
+                    8 => {
+                        let s = std::slice::from_raw_parts(buf.data as *const u8, buf.size as usize);
+                        s.into_iter().map(|x| *x as u32).collect()
+                    },
+                    16 => {
+                        let s = std::slice::from_raw_parts(buf.data as *const u16, buf.size as usize);
+                        s.into_iter().map(|x| *x as u32).collect()
+                    }
+                    32 => std::slice::from_raw_parts(buf.data as *const u32, buf.size as usize).to_vec(),
+                    _ => panic!("Unsupported pixel width {}", buf.width),
+                };
+                outputbufs.push(data);
+            }
+
+            println!("{:?}", outputbufs);
+            outputbufs
+        }
+    }
+
+    pub fn rect_disp() {
+        unsafe {
+            Pixel_dispBuffer();
+        }
+    }
+
+    pub fn add_animation(index: usize) {
+        unsafe {
+            let mut elt = AnimationStackElement {
+                trigger: std::ptr::null_mut(),
+                index: index as u16,
+                pos: 0,
+                subpos: 0,
+                loops: 1,
+                framedelay: 0,
+                frameoption: PixelFrameOption_PixelFrameOption_None,
+                ffunc: PixelFrameFunction_PixelFrameFunction_Interpolation, //Off,
+                pfunc: PixelPixelFunction_PixelPixelFunction_PointInterpolation, //Off,
+                replace: AnimationReplaceType_AnimationReplaceType_ClearActive, //None,
+                state: AnimationPlayState_AnimationPlayState_AutoStart,
+            };
+            Pixel_addAnimation(&mut elt, CapabilityState_CapabilityState_None);
+        }
+    }
+
+    pub fn animation_stack_info() -> AnimationStack {
+        unsafe {
+            //Pixel_AnimationStack_HostSize
+            Pixel_AnimationStack
+        }
+    }
 }
 
 pub mod data {
@@ -252,8 +311,7 @@ pub mod data {
 mod tests {
     use super::*;
 
-    #[test]
-    fn output_test() {
+    fn init() {
         control::add_cmd("serial_write", output::serial_write);
         control::add_cmd("keyboard_send", output::keyboard_send);
         control::add_cmd("mouse_send", output::mouse_send);
@@ -261,8 +319,15 @@ mod tests {
         control::add_cmd("serial_available", output::serial_available);
         control::add_cmd("layerState", input::layer_callback);
         control::add_cmd("capabilityCallback", output::capability_callback);
+        /*control::add_cmd("rawio_available", output::rawio_available);
+        control::add_cmd("rawio_rx", output::rawio_available);
+        control::add_cmd("rawio_tx", output::rawio_available);*/
         control::init();
+    }
 
+    #[test]
+    fn output_test() {
+        init();
         input::set_macro_debug(2);
         input::set_vote_debug(true);
         input::set_layer_debug(true);
@@ -274,5 +339,20 @@ mod tests {
         input::press(0x01, 0);
         control::process(1);
         println!("TPending {:?}", data::pending_trigger_list());
+    }
+
+    #[test]
+    fn animation_test() {
+        init();
+        input::add_animation(13); //rainbow
+        dbg!(input::animation_stack_info());
+
+        control::process(1);
+        input::rect_disp();
+
+        control::process(1);
+        input::rect_disp();
+
+        input::animation_display_buffers();
     }
 }

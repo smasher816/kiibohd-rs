@@ -115,20 +115,72 @@ pub mod output {
         }
         None
     }
+
+    pub fn set_output_debug(debug_mode: usize) {
+        unsafe {
+            Output_DebugMode = debug_mode as u8;
+        }
+    }
 }
 
 pub mod input {
     use kiibohd_sys::*;
 
-    pub fn press(key: u8, state: u8) {
+    pub fn trigger(key: u8, typ: u8, state: u8) {
         unsafe {
-            Scan_addScanCode(key, state);
+            Scan_setTriggerCode(key, typ, state);
         }
     }
 
-    pub fn release(key: u8, state: u8) {
+    pub fn press(key: u8, typ: u8) {
         unsafe {
-            Scan_removeScanCode(key, state);
+            Scan_addScanCode(key, typ);
+        }
+    }
+
+    pub fn release(key: u8, typ: u8) {
+        unsafe {
+            Scan_removeScanCode(key, typ);
+        }
+    }
+
+    pub fn apply_layer(state: u8, layer: u16, layer_state: bool) {
+        unsafe {
+            let trigger = std::ptr::null_mut();
+            let state_type = TriggerType_TriggerType_Switch1;
+            Layer_layerStateSet(trigger, state, state_type as u8, layer, layer_state as u8);
+        }
+    }
+
+    pub fn lock_layer(layer: u16) {
+        unsafe {
+            let trigger = std::ptr::null_mut();
+            let state = ScheduleState_ScheduleType_P;
+            let state_type = TriggerType_TriggerType_Switch1;
+            let layer_state = LayerStateType_LayerStateType_Lock;
+            Layer_layerStateSet(trigger, state as u8, state_type as u8, layer, layer_state as u8);
+        }
+    }
+
+    pub fn clear_layers() {
+        unsafe {
+            Layer_clearLayers();
+        }
+    }
+
+    pub fn get_layer_state() {
+        unsafe {
+            //LayerNum_host
+            dbg!(LayerState);
+            //macroLayerIndexStackSize
+            dbg!(macroLayerIndexStack);
+        }
+    }
+
+    pub fn set_kbd_protocol(nkro: bool) {
+        unsafe {
+            USBKeys_Protocol_New = nkro as u8;
+            USBKeys_Protocol_Change = 1;
         }
     }
 
@@ -159,6 +211,11 @@ pub mod input {
         unsafe {
             triggerPendingDebugMode = debug_enabled as u8;
         }
+    }
+
+    pub fn layer_callback(_args: &[u8]) -> Option<i32> {
+        get_layer_state();
+        None
     }
 }
 
@@ -202,7 +259,7 @@ mod tests {
         control::add_cmd("mouse_send", output::mouse_send);
         control::add_cmd("serial_read", output::serial_read);
         control::add_cmd("serial_available", output::serial_available);
-        control::add_cmd("layerState", output::serial_available);
+        control::add_cmd("layerState", input::layer_callback);
         control::add_cmd("capabilityCallback", output::capability_callback);
         control::init();
 
